@@ -8,14 +8,16 @@ Usage:
     Ctrl+C to stop
 """
 
+import os
 import socket
 import subprocess
 import time
+from datetime import datetime
 
 # ── Config ────────────────────────────────────────────────────────────────────
 CHANNEL = "rifftrax"
 TRIGGER = "!newmovie"   # ← placeholder — update this when the real command is known
-NICK    = "rifferfan70"
+NICK    = "justinfan70"  # Twitch requires justinfan* prefix for anonymous read-only access
 # ─────────────────────────────────────────────────────────────────────────────
 
 HOST = "irc.chat.twitch.tv"
@@ -74,15 +76,23 @@ def run() -> None:
 
                 parsed = parse_privmsg(line)
                 if parsed is None:
+                    if line:
+                        print(f"[server]: {line}")
                     continue
 
                 username, message = parsed
-                print(f"[{username}]: {message}")
+                ts = datetime.now().strftime("%H:%M:%S")
+                log_line = f"[{ts}] [{username}]: {message}"
+                print(log_line)
+                with open("chat.log", "a") as f:
+                    f.write(log_line + "\n")
 
                 if message.startswith(TRIGGER):
                     title = extract_title(message)
                     print(f"[rifftrax-bot] *** TRIGGER detected! Notifying: {title!r}")
                     notify("Now Starting", title)
+                    with open(os.path.expanduser("~/.rifftrax_now_playing.txt"), "w") as f:
+                        f.write(title)
 
         except KeyboardInterrupt:
             print("\n[rifftrax-bot] Stopped.")
