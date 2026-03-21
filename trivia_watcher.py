@@ -45,3 +45,27 @@ def should_fetch_on_startup(title: str, existing_trivia: str) -> bool:
     if not title:
         return False
     return not existing_trivia
+
+
+def build_prompt(title: str) -> str:
+    return (
+        f'You are a writer for RiffTrax, the comedy riffing show. Write 2-3 short, punchy '
+        f'sentences of trivia about "{title}" in the RiffTrax voice — dry wit, affectionate '
+        f'mockery, genuine facts wrapped in a joke. If you don\'t recognize the title, write '
+        f'something generically funny about low-budget cinema. No bullet points, no lists, '
+        f'just flowing sentences.'
+    )
+
+
+def fetch_trivia(title: str, client) -> str:
+    """Call Claude API and return trivia text. Returns fallback quip on error."""
+    try:
+        response = client.messages.create(
+            model=MODEL,
+            max_tokens=200,
+            messages=[{"role": "user", "content": build_prompt(title)}],
+        )
+        return response.content[0].text.strip()
+    except Exception as e:
+        print(f"[trivia-watcher] API error: {e}")
+        return FALLBACK_QUIP

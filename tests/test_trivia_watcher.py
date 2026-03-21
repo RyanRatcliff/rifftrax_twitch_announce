@@ -58,3 +58,52 @@ def test_should_not_fetch_when_title_absent():
 def test_should_not_fetch_when_title_absent_even_if_trivia_present():
     from trivia_watcher import should_fetch_on_startup
     assert should_fetch_on_startup(title="", existing_trivia="stale trivia") is False
+
+
+from unittest.mock import MagicMock, patch
+
+
+def test_fetch_trivia_returns_api_text():
+    from trivia_watcher import fetch_trivia
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value.content = [
+        MagicMock(text="This film was made for $7,000 and a prayer.")
+    ]
+    result = fetch_trivia("Plan 9 from Outer Space", mock_client)
+    assert result == "This film was made for $7,000 and a prayer."
+
+
+def test_fetch_trivia_calls_correct_model():
+    from trivia_watcher import fetch_trivia, MODEL
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value.content = [MagicMock(text="trivia")]
+    fetch_trivia("Plan 9", mock_client)
+    call_kwargs = mock_client.messages.create.call_args[1]
+    assert call_kwargs["model"] == MODEL
+
+
+def test_fetch_trivia_includes_title_in_prompt():
+    from trivia_watcher import fetch_trivia
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value.content = [MagicMock(text="trivia")]
+    fetch_trivia("Santa Claus Conquers the Martians", mock_client)
+    call_kwargs = mock_client.messages.create.call_args[1]
+    prompt_text = call_kwargs["messages"][0]["content"]
+    assert "Santa Claus Conquers the Martians" in prompt_text
+
+
+def test_fetch_trivia_returns_fallback_on_api_error():
+    from trivia_watcher import fetch_trivia, FALLBACK_QUIP
+    mock_client = MagicMock()
+    mock_client.messages.create.side_effect = Exception("API down")
+    result = fetch_trivia("Plan 9", mock_client)
+    assert result == FALLBACK_QUIP
+
+
+def test_fetch_trivia_logs_error_on_api_failure(capsys):
+    from trivia_watcher import fetch_trivia
+    mock_client = MagicMock()
+    mock_client.messages.create.side_effect = Exception("timeout")
+    fetch_trivia("Plan 9", mock_client)
+    captured = capsys.readouterr()
+    assert "timeout" in captured.out
