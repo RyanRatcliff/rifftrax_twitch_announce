@@ -38,3 +38,10 @@ def write_file(path: str, content: str) -> None:
     """Write content to a file, overwriting if it exists."""
     with open(path, "w") as f:
         f.write(content)
+
+
+def should_fetch_on_startup(title: str, existing_trivia: str) -> bool:
+    """Return True if we should fetch trivia on startup."""
+    if not title:
+        return False
+    return not existing_trivia

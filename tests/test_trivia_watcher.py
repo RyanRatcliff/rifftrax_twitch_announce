@@ -35,3 +35,26 @@ def test_write_trivia_empty_string(tmp_path):
     from trivia_watcher import write_file
     write_file(str(f), "")
     assert f.read_text() == ""
+
+
+def test_should_fetch_when_title_present_trivia_absent():
+    from trivia_watcher import should_fetch_on_startup
+    assert should_fetch_on_startup(title="Manos: The Hands of Fate", existing_trivia="") is True
+
+
+def test_should_not_fetch_when_title_present_trivia_present():
+    from trivia_watcher import should_fetch_on_startup
+    assert should_fetch_on_startup(
+        title="Manos: The Hands of Fate",
+        existing_trivia="Filmed in El Paso by a fertilizer salesman."
+    ) is False
+
+
+def test_should_not_fetch_when_title_absent():
+    from trivia_watcher import should_fetch_on_startup
+    assert should_fetch_on_startup(title="", existing_trivia="") is False
+
+
+def test_should_not_fetch_when_title_absent_even_if_trivia_present():
+    from trivia_watcher import should_fetch_on_startup
+    assert should_fetch_on_startup(title="", existing_trivia="stale trivia") is False
