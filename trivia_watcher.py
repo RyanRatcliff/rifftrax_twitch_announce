@@ -69,3 +69,63 @@ def fetch_trivia(title: str, client) -> str:
     except Exception as e:
         print(f"[trivia-watcher] API error: {e}")
         return FALLBACK_QUIP
+
+
+def load_api_key(path: str) -> str:
+    """Read API key from file. Exits with clear message if missing."""
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        print(f"[trivia-watcher] Error: API key file not found at ~/.rifftrax_anthropic_key")
+        print(f"[trivia-watcher] Create it with your Anthropic API key as the only content.")
+        sys.exit(1)
+
+
+def run() -> None:
+    import anthropic
+
+    api_key = load_api_key(API_KEY_FILE)
+    client  = anthropic.Anthropic(api_key=api_key)
+
+    # Startup: decide whether to fetch immediately
+    title          = read_file(NOW_PLAYING_FILE)
+    existing_trivia = read_file(TRIVIA_FILE)
+    last_title     = title  # initialize so first poll doesn't re-trigger
+
+    if not title:
+        write_file(TRIVIA_FILE, "")
+    elif should_fetch_on_startup(title, existing_trivia):
+        print(f"[trivia-watcher] Startup fetch for: {title!r}")
+        write_file(TRIVIA_FILE, fetch_trivia(title, client))
+    else:
+        print(f"[trivia-watcher] Startup: trivia already present for {title!r}, skipping fetch")
+
+    print(f"[trivia-watcher] Watching {NOW_PLAYING_FILE} ...")
+
+    while True:
+        try:
+            time.sleep(POLL_INTERVAL)
+            current_title = read_file(NOW_PLAYING_FILE)
+
+            if current_title == last_title:
+                continue
+
+            last_title = current_title
+
+            if not current_title:
+                print("[trivia-watcher] Title cleared, hiding trivia")
+                write_file(TRIVIA_FILE, "")
+            else:
+                print(f"[trivia-watcher] New title: {current_title!r}, fetching trivia...")
+                write_file(TRIVIA_FILE, fetch_trivia(current_title, client))
+
+        except KeyboardInterrupt:
+            print("\n[trivia-watcher] Stopped.")
+            return
+        except Exception as e:
+            print(f"[trivia-watcher] Unexpected error: {e}")
+
+
+if __name__ == "__main__":
+    run()

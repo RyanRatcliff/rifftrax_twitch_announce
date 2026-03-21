@@ -107,3 +107,26 @@ def test_fetch_trivia_logs_error_on_api_failure(capsys):
     fetch_trivia("Plan 9", mock_client)
     captured = capsys.readouterr()
     assert "timeout" in captured.out
+
+
+def test_load_api_key_reads_key_from_file(tmp_path):
+    key_file = tmp_path / "key"
+    key_file.write_text("sk-ant-test123\n")
+    from trivia_watcher import load_api_key
+    assert load_api_key(str(key_file)) == "sk-ant-test123"
+
+
+def test_load_api_key_exits_if_file_missing(tmp_path):
+    from trivia_watcher import load_api_key
+    with pytest.raises(SystemExit):
+        load_api_key(str(tmp_path / "missing.txt"))
+
+
+def test_load_api_key_exit_message_is_descriptive(tmp_path, capsys):
+    from trivia_watcher import load_api_key
+    try:
+        load_api_key(str(tmp_path / "missing.txt"))
+    except SystemExit:
+        pass
+    captured = capsys.readouterr()
+    assert "~/.rifftrax_anthropic_key" in captured.out
