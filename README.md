@@ -19,8 +19,9 @@ No Twitch account, API keys, or OAuth tokens required.
 ## Requirements
 
 - macOS (notifications use `osascript`)
-- Python 3.8+ (stdlib only — no pip installs needed)
-- [Übersicht](https://tracesof.net/uebersicht/) *(optional, for the desktop widget)*
+- Python 3.8+
+- [Übersicht](https://tracesof.net/uebersicht/) *(optional, for desktop widgets)*
+- An [Anthropic API key](https://console.anthropic.com/) *(optional, for the trivia widget)*
 
 ---
 
@@ -31,7 +32,11 @@ git clone https://github.com/YOUR_USERNAME/rifftrax_twitch_announce.git
 cd rifftrax_twitch_announce
 ```
 
-That's it. No virtual environment or dependencies to install.
+For the trivia widget only, install the `anthropic` SDK:
+
+```bash
+pip install -r requirements.txt
+```
 
 ---
 
@@ -49,14 +54,13 @@ The bot will print all chat messages to the terminal. When the trigger command i
 
 ---
 
-## Desktop Widget (optional)
+## Desktop Widgets (optional)
 
-The widget displays the current movie/short title on your desktop and disappears when nothing is playing.
+Two Übersicht widgets are included. Both require [Übersicht](https://tracesof.net/uebersicht/) to be installed.
 
-**Setup:**
+### Now Playing widget
 
-1. Install [Übersicht](https://tracesof.net/uebersicht/)
-2. Copy the widget folder into your Übersicht widgets directory:
+Displays the current movie/short title on your desktop and disappears when nothing is playing.
 
 ```bash
 cp -r widget/rifftrax.widget ~/Library/Application\ Support/Übersicht/widgets/
@@ -75,6 +79,35 @@ To clear it:
 ```bash
 rm ~/.rifftrax_now_playing.txt
 ```
+
+### Trivia widget
+
+Displays a scrolling ticker of Claude-generated RiffTrax-flavored trivia about whatever is currently playing. Requires an Anthropic API key.
+
+**Setup:**
+
+1. Create an API key file (one line, just the key):
+
+```bash
+echo "your-anthropic-api-key" > ~/.rifftrax_anthropic_key
+chmod 600 ~/.rifftrax_anthropic_key
+```
+
+2. Copy the widget:
+
+```bash
+cp -r widget/rifftrax-trivia.widget ~/Library/Application\ Support/Übersicht/widgets/
+```
+
+3. Start the trivia watcher alongside the bot:
+
+```bash
+python3 trivia_watcher.py
+```
+
+The watcher polls `~/.rifftrax_now_playing.txt` every 5 seconds. When the title changes it calls Claude, writes the trivia to `~/.rifftrax_trivia.txt`, and the widget picks it up automatically. The widget appears below the now-playing widget and hides itself when nothing is playing.
+
+> **Note:** If your Übersicht widgets directory is not the default, substitute your actual path in the `cp` commands above.
 
 ---
 
