@@ -12,11 +12,10 @@ import os
 import socket
 import subprocess
 import time
-from datetime import datetime
 
 # ── Config ────────────────────────────────────────────────────────────────────
 CHANNEL = "rifftrax"
-TRIGGER = "!newmovie"   # ← placeholder — update this when the real command is known
+TRIGGER = "!cmd edit movie"
 NICK    = "justinfan70"  # Twitch requires justinfan* prefix for anonymous read-only access
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -30,9 +29,13 @@ def notify(title: str, message: str) -> None:
 
 
 def extract_title(text: str) -> str:
-    """Return everything after the trigger command, or a fallback string."""
+    """Return the movie title from '!cmd edit movie <title> <url>', stripping the URL."""
     rest = text[len(TRIGGER):].strip()
-    return rest if rest else "New RiffTrax presentation starting!"
+    # Drop trailing URL (anything starting with http)
+    parts = rest.split()
+    title_parts = [p for p in parts if not p.startswith("http")]
+    title = " ".join(title_parts).strip()
+    return title if title else "New RiffTrax presentation starting!"
 
 
 def parse_privmsg(line: str):
@@ -81,11 +84,7 @@ def run() -> None:
                     continue
 
                 username, message = parsed
-                ts = datetime.now().strftime("%H:%M:%S")
-                log_line = f"[{ts}] [{username}]: {message}"
-                print(log_line)
-                with open("chat.log", "a") as f:
-                    f.write(log_line + "\n")
+                print(f"[{username}]: {message}")
 
                 if message.startswith(TRIGGER):
                     title = extract_title(message)
