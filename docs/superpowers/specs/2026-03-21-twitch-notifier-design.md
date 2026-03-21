@@ -30,23 +30,24 @@ bot.py
 ## Components
 
 ### IRC Connection
-- Connects to `irc.chat.twitch.tv:6667` as `rifferfan70` using anonymous auth (`PASS SCHMOOPIIE`)
+- Connects to `irc.chat.twitch.tv:6667` (plaintext IRC — port Twitch currently supports for anonymous bots) as `rifferfan70` using anonymous auth (`PASS SCHMOOPIIE`)
 - Joins `#rifftrax`
+- Uses `socket.makefile('r')` for proper line buffering (`\r\n` line endings per IRC spec)
 - Handles `PING` → `PONG` to maintain connection
-- Auto-reconnects with a short delay if the socket drops
+- Auto-reconnects on socket drop: re-sends NICK, PASS, and JOIN after a 5-second delay; loops indefinitely
 
 ### Message Loop
-- Reads incoming IRC lines in a loop
+- Reads IRC lines via the buffered file handle (handles partial reads and multi-line reads correctly)
 - Parses `PRIVMSG` lines for the trigger command (placeholder: `!newmovie`)
-- Logs all received messages to the terminal for visibility
+- Logs only `PRIVMSG` lines to the terminal (suppresses PING/PONG and server notices) so the user can monitor chat and spot the real trigger command
 
 ### Trigger Detection
-- Matches messages that start with (or contain) the configured trigger command
+- Matches messages that **start with** the configured trigger command (e.g. `!newmovie Movie Title Here`)
 - Command placeholder can be updated in the config block at the top of the file
 
 ### Title Extraction
-- Extracts the movie/short title from the portion of the message after the command keyword
-- Falls back to a generic notification if no title is found
+- Expected message format: `<TRIGGER> <title>` — title is everything after the first space
+- Falls back to `"New RiffTrax presentation starting!"` if no title is found in the message
 
 ### macOS Notification
 - Fires via `osascript -e 'display notification "..." with title "RiffTrax" subtitle "..."'`
@@ -59,9 +60,9 @@ bot.py
 At the top of `bot.py`:
 
 ```python
-CHANNEL = "rifftrax"
+CHANNEL = "rifftrax"    # no # prefix — code prepends it
 TRIGGER = "!newmovie"   # ← placeholder, update when real command is known
-NICK = "rifferfan70"
+NICK = "rifferfan70"    # arbitrary username; Twitch accepts any nick for anonymous read-only
 ```
 
 ---
