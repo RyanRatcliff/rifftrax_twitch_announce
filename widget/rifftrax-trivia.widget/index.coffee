@@ -33,7 +33,7 @@ style: """
   .ticker
     display: inline-block
     white-space: nowrap
-    animation: marquee 60s linear infinite
+    animation: marquee 240s linear infinite
 
   @keyframes marquee
     from
