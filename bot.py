@@ -14,9 +14,12 @@ import subprocess
 import time
 
 # ── Config ────────────────────────────────────────────────────────────────────
-CHANNEL = "rifftrax"
-TRIGGER = "!cmd edit movie"
-NICK    = "justinfan70"  # Twitch requires justinfan* prefix for anonymous read-only access
+CHANNEL            = "rifftrax"
+TRIGGERS           = ("!cmd edit movie", "!cmd edit !movie")  # Admin commands that change the movie
+STREAMELEMENTS_BOT = "streamelements"    # Bot that replies to !movie / !film queries
+RIFFTRAX_PREFIX    = "RiffTrax"          # StreamElements movie replies start with this
+NICK               = "justinfan70"       # Twitch requires justinfan* prefix for anonymous read-only access
+NOW_PLAYING_FILE   = os.path.expanduser("~/.rifftrax_now_playing.txt")
 # ─────────────────────────────────────────────────────────────────────────────
 
 HOST = "irc.chat.twitch.tv"
@@ -28,14 +31,29 @@ def notify(title: str, message: str) -> None:
     subprocess.run(["osascript", "-e", script], check=False)
 
 
-def extract_title(text: str) -> str:
-    """Return the movie title from '!cmd edit movie <title> <url>', stripping the URL."""
-    rest = text[len(TRIGGER):].strip()
-    # Drop trailing URL (anything starting with http)
+def extract_title(text: str, trigger: str) -> str:
+    """Return the movie title from a trigger command line, stripping the trigger prefix and URL."""
+    rest = text[len(trigger):].strip()
     parts = rest.split()
     title_parts = [p for p in parts if not p.startswith("http")]
     title = " ".join(title_parts).strip()
     return title if title else "New RiffTrax presentation starting!"
+
+
+def strip_url(text: str) -> str:
+    """Strip trailing URL from a message, return just the title portion."""
+    parts = text.split()
+    title_parts = [p for p in parts if not p.startswith("http")]
+    return " ".join(title_parts).strip()
+
+
+def read_now_playing() -> str:
+    """Return the currently stored title, or empty string if not set."""
+    try:
+        with open(NOW_PLAYING_FILE) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return ""
 
 
 def parse_privmsg(line: str):
@@ -66,7 +84,13 @@ def connect() -> tuple[socket.socket, object]:
     return sock, reader
 
 
+MOVIE_QUERY_COMMANDS = {"!movie", "!film"}
+MOVIE_QUERY_WINDOW   = 30  # seconds to wait for streamelements reply after a query
+
+
 def run() -> None:
+    last_query_time = 0.0
+
     while True:
         try:
             sock, reader = connect()
@@ -86,12 +110,28 @@ def run() -> None:
                 username, message = parsed
                 print(f"[{username}]: {message}")
 
-                if message.startswith(TRIGGER):
-                    title = extract_title(message)
+                matched_trigger = next((t for t in TRIGGERS if message.startswith(t)), None)
+                if matched_trigger:
+                    title = extract_title(message, matched_trigger)
                     print(f"[rifftrax-bot] *** TRIGGER detected! Notifying: {title!r}")
                     notify("Now Starting", title)
-                    with open(os.path.expanduser("~/.rifftrax_now_playing.txt"), "w") as f:
+                    with open(NOW_PLAYING_FILE, "w") as f:
                         f.write(title)
+
+                elif message.strip().lower() in MOVIE_QUERY_COMMANDS:
+                    last_query_time = time.time()
+
+                elif username == STREAMELEMENTS_BOT and message.startswith(RIFFTRAX_PREFIX):
+                    if time.time() - last_query_time <= MOVIE_QUERY_WINDOW:
+                        # Preceded by !movie / !film — sync if we missed the change command
+                        last_query_time = 0.0
+                        title = strip_url(message)
+                        current = read_now_playing()
+                        if title and title != current:
+                            print(f"[rifftrax-bot] *** SYNC: stored title mismatch, updating to: {title!r}")
+                            notify("Now Playing", title)
+                            with open(NOW_PLAYING_FILE, "w") as f:
+                                f.write(title)
 
         except KeyboardInterrupt:
             print("\n[rifftrax-bot] Stopped.")
