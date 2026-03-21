@@ -109,6 +109,18 @@ python3 trivia_watcher.py
 
 The watcher polls `~/.rifftrax_now_playing.txt` every 5 seconds. When the title changes it calls Claude, writes the trivia to `~/.rifftrax_trivia.txt`, and the widget picks it up automatically. The widget appears below the now-playing widget and hides itself when nothing is playing.
 
+### Combined widget *(alternative to the two above)*
+
+A single card that merges the Now Playing and Trivia widgets into one. Shows the movie title at the top, a divider, and the scrolling trivia ticker below — hiding each section independently when its data isn't available, and hiding the whole card when nothing is playing.
+
+Use this instead of the two separate widgets if you prefer a single unified overlay.
+
+```bash
+cp -r widget/rifftrax-combined.widget ~/Library/Application\ Support/Übersicht/widgets/
+```
+
+It reads both `~/.rifftrax_now_playing.txt` and `~/.rifftrax_trivia.txt`, so the same bot and trivia watcher setup applies.
+
 > **Note:** If your Übersicht widgets directory is not the default, substitute your actual path in the `cp` commands above.
 
 ---
