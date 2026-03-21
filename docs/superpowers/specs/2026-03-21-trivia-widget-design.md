@@ -42,12 +42,16 @@ The two widgets are independent. The trivia widget trails the now-playing widget
 
 ### `trivia_watcher.py`
 
-- **Startup:** reads `~/.rifftrax_anthropic_key` (raw API key, single line). Exits with a clear error message if the file is missing.
+- **Startup:** reads `~/.rifftrax_anthropic_key` (raw API key, single line). Exits with a clear error message if the file is missing. Initializes `last_title = None`. Then checks `~/.rifftrax_now_playing.txt`: if non-empty and `~/.rifftrax_trivia.txt` is also non-empty (stale trivia from a previous run), skips the fetch and sets `last_title` to the current title to avoid burning an unnecessary API call on restart. If trivia file is absent or empty, fetches trivia immediately. If now-playing file is empty or absent, clears `~/.rifftrax_trivia.txt`. The widget will pick up any written trivia on its next 5s poll — there is no instant display on watcher startup, and that's expected.
 - **Poll loop:** every 5 seconds, reads `~/.rifftrax_now_playing.txt` and compares to `last_title`.
 - **On title change:** calls Claude API with a prompt requesting 2–3 sentences of RiffTrax-flavored trivia about the movie. Writes the result to `~/.rifftrax_trivia.txt`.
 - **On title cleared (empty file):** writes an empty `~/.rifftrax_trivia.txt` so the widget hides.
 - **On API error:** writes a fallback RiffTrax-flavored one-liner (e.g., "Even our robots couldn't find anything nice to say about this one.") and logs the error to stdout.
 - **Runs until Ctrl+C**, same pattern as `bot.py`.
+
+#### Claude Model
+
+Use `claude-haiku-4-5-20251001` — fast and cheap, appropriate for short trivia generation.
 
 #### Claude API Prompt
 
@@ -59,9 +63,10 @@ You are a writer for RiffTrax, the comedy riffing show. Write 2-3 short, punchy 
 
 - `command`: `cat ~/.rifftrax_trivia.txt 2>/dev/null`
 - `refreshFrequency`: 5000
-- **Position:** `top: 160px`, `left: 40px` (clears the now-playing widget above it)
+- **Position:** `top: 160px`, `left: 40px` — this is an approximate starting point. The existing widget has no fixed height, so the implementer should verify this clears it on typical title lengths and adjust as needed.
 - **Style:** same black background (`rgba(0,0,0,0.75)`), red left border (`#e50914`), same font and border-radius as existing widget
-- **Scroll:** CSS `@keyframes marquee` — text translates from 100% to -100% over ~25s, loops infinitely. Fixed-width container with `overflow: hidden`.
+- **Scroll:** CSS `@keyframes marquee` — text container uses `white-space: nowrap; overflow: hidden`. The inner text element (a `<span>` directly inside the container) animates with `translateX(100vw)` as the start position to `translateX(-100vw)` as the end (both values viewport-relative, so the text travels fully across regardless of its own width). Duration ~25s, loops infinitely. Single-line ticker.
+- **Animation restart:** Übersicht re-runs the command every 5s. The `update` function must only update the DOM (and thus restart the animation) when the trivia content has actually changed — compare new output to the existing `.text()` of the trivia element before writing. If unchanged, do nothing.
 - **Visibility:** hidden by default (`.visible` class added when output is non-empty), same pattern as existing widget.
 
 ---
