@@ -33,13 +33,14 @@ style: """
   .ticker
     display: inline-block
     white-space: nowrap
+    padding-left: 100%
     animation: marquee 45s linear infinite
 
   @keyframes marquee
     from
-      transform: translateX(100vw)
+      transform: translateX(0)
     to
-      transform: translateX(-100vw)
+      transform: translateX(-100%)
 """
 
 render: (output) -> """
