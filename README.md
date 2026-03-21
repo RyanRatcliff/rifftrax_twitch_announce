@@ -6,6 +6,8 @@ No Twitch account, API keys, or OAuth tokens required.
 
 ---
 
+![RiffTrax widgets showing Now Riffing and Trivia on a dark desktop](docs/assets/screenshot.png)
+
 ## Features
 
 - Connects anonymously to Twitch IRC — no credentials needed
