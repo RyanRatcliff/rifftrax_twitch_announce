@@ -83,7 +83,7 @@ def load_api_key(path: str) -> str:
 
 
 def run() -> None:
-    import anthropic
+    import anthropic  # deferred so tests can import this module without the SDK installed
 
     api_key = load_api_key(API_KEY_FILE)
     client  = anthropic.Anthropic(api_key=api_key)
