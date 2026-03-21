@@ -35,6 +35,7 @@ style: """
     white-space: nowrap
     padding-left: 100%
     animation: marquee 45s linear infinite
+    will-change: transform
 
   @keyframes marquee
     from
