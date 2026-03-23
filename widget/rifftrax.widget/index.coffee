@@ -1,4 +1,4 @@
-command: "cat ~/.rifftrax_now_playing.txt 2>/dev/null"
+command: "printf '%s\n---SPLIT---\n%s' \"$(cat ~/.rifftrax_now_playing.txt 2>/dev/null)\" \"$(stat -f '%Sm' -t 'Started %I:%M %p' ~/.rifftrax_now_playing.txt 2>/dev/null)\""
 
 refreshFrequency: 5000
 
@@ -29,17 +29,32 @@ style: """
     font-size: 22px
     font-weight: 600
     line-height: 1.3
+
+  .starttime
+    font-size: 11px
+    font-weight: 400
+    color: rgba(255,255,255,0.45)
+    margin-top: 5px
+    letter-spacing: 0.04em
 """
 
-render: (output) -> """
+render: (output) ->
+  parts     = output.split('\n---SPLIT---\n')
+  title     = (parts[0] or '').trim()
+  starttime = (parts[1] or '').trim()
+  """
   <div class='label'>📽 Now Riffing</div>
-  <div class='title'>#{output.trim()}</div>
-"""
+  <div class='title'>#{title}</div>
+  <div class='starttime'>#{starttime}</div>
+  """
 
 update: (output, domEl) ->
-  title = output.trim()
+  parts     = output.split('\n---SPLIT---\n')
+  title     = (parts[0] or '').trim()
+  starttime = (parts[1] or '').trim()
   if title
     $(domEl).addClass('visible')
     $(domEl).find('.title').text(title)
+    $(domEl).find('.starttime').text(starttime)
   else
     $(domEl).removeClass('visible')

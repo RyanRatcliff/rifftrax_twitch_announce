@@ -1,4 +1,4 @@
-command: "printf '%s\n---SPLIT---\n%s' \"$(cat ~/.rifftrax_now_playing.txt 2>/dev/null)\" \"$(cat ~/.rifftrax_trivia.txt 2>/dev/null)\""
+command: "printf '%s\n---SPLIT---\n%s\n---SPLIT---\n%s' \"$(cat ~/.rifftrax_now_playing.txt 2>/dev/null)\" \"$(cat ~/.rifftrax_trivia.txt 2>/dev/null)\" \"$(stat -f '%Sm' -t 'Started %I:%M %p' ~/.rifftrax_now_playing.txt 2>/dev/null)\""
 
 refreshFrequency: 5000
 
@@ -29,6 +29,13 @@ style: """
     font-size: 22px
     font-weight: 600
     line-height: 1.3
+
+  .starttime
+    font-size: 11px
+    font-weight: 400
+    color: rgba(255,255,255,0.45)
+    margin-top: 5px
+    letter-spacing: 0.04em
 
   .divider
     border: none
@@ -64,13 +71,15 @@ style: """
 """
 
 render: (output) ->
-  parts = output.split('\n---SPLIT---\n')
-  title  = (parts[0] or '').trim()
-  trivia = (parts[1] or '').trim()
+  parts     = output.split('\n---SPLIT---\n')
+  title     = (parts[0] or '').trim()
+  trivia    = (parts[1] or '').trim()
+  starttime = (parts[2] or '').trim()
   """
   <div class='now-playing-section'>
     <div class='label'>📽 Now Riffing</div>
     <div class='title'>#{title}</div>
+    <div class='starttime'>#{starttime}</div>
   </div>
   <hr class='divider'>
   <div class='trivia-section'>
@@ -82,12 +91,14 @@ render: (output) ->
   """
 
 update: (output, domEl) ->
-  parts  = output.split('\n---SPLIT---\n')
-  title  = (parts[0] or '').trim()
-  trivia = (parts[1] or '').trim()
+  parts     = output.split('\n---SPLIT---\n')
+  title     = (parts[0] or '').trim()
+  trivia    = (parts[1] or '').trim()
+  starttime = (parts[2] or '').trim()
   $el = $(domEl)
 
   $el.find('.title').text(title)
+  $el.find('.starttime').text(starttime)
 
   $triviaSection = $el.find('.trivia-section')
   $ticker = $el.find('.ticker')

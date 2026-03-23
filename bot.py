@@ -16,8 +16,8 @@ import time
 # ── Config ────────────────────────────────────────────────────────────────────
 CHANNEL            = "rifftrax"
 TRIGGERS           = ("!cmd edit movie", "!cmd edit !movie")  # Admin commands that change the movie
-STREAMELEMENTS_BOT = "streamelements"    # Bot that replies to !movie / !film queries
-RIFFTRAX_PREFIX    = "RiffTrax"          # StreamElements movie replies start with this
+STREAMELEMENTS_BOT  = "streamelements"       # Bot that replies to !movie / !film queries
+RIFFTRAX_URL_MARKER = "rifftrax.com/"       # Present in all StreamElements movie replies
 NICK               = "justinfan70"       # Twitch requires justinfan* prefix for anonymous read-only access
 NOW_PLAYING_FILE   = os.path.expanduser("~/.rifftrax_now_playing.txt")
 # ─────────────────────────────────────────────────────────────────────────────
@@ -121,7 +121,7 @@ def run() -> None:
                 elif message.strip().lower() in MOVIE_QUERY_COMMANDS:
                     last_query_time = time.time()
 
-                elif username == STREAMELEMENTS_BOT and message.startswith(RIFFTRAX_PREFIX):
+                elif username == STREAMELEMENTS_BOT and RIFFTRAX_URL_MARKER in message:
                     if time.time() - last_query_time <= MOVIE_QUERY_WINDOW:
                         # Preceded by !movie / !film — sync if we missed the change command
                         last_query_time = 0.0
