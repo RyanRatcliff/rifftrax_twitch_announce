@@ -52,7 +52,13 @@ python3 bot.py
 
 Press `Ctrl+C` to stop.
 
-The bot will print all chat messages to the terminal. When the trigger command is detected, a macOS notification will pop up and `~/.rifftrax_now_playing.txt` will be updated with the current title.
+By default only bot events are printed. Pass `--chat` to also print all Twitch chat messages:
+
+```bash
+python3 bot.py --chat
+```
+
+When the trigger command is detected, a macOS notification will pop up and `~/.rifftrax_now_playing.txt` will be updated with the current title.
 
 ---
 

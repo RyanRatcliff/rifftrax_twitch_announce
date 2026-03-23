@@ -9,6 +9,7 @@ Usage:
     Ctrl+C to stop
 """
 
+import argparse
 import os
 import socket
 import subprocess
@@ -107,7 +108,7 @@ MOVIE_QUERY_COMMANDS = {"!movie", "!film"}
 MOVIE_QUERY_WINDOW   = 30  # seconds to wait for streamelements reply after a query
 
 
-def bot_loop() -> None:
+def bot_loop(show_chat: bool = False) -> None:
     last_query_time = 0.0
 
     while True:
@@ -122,12 +123,13 @@ def bot_loop() -> None:
 
                 parsed = parse_privmsg(line)
                 if parsed is None:
-                    if line:
+                    if line and show_chat:
                         print(f"[server]: {line}")
                     continue
 
                 username, message = parsed
-                print(f"[{username}]: {message}")
+                if show_chat:
+                    print(f"[{username}]: {message}")
 
                 matched_trigger = next((t for t in TRIGGERS if message.startswith(t)), None)
                 if matched_trigger:
@@ -237,6 +239,10 @@ def trivia_loop(client) -> None:
 def run() -> None:
     import anthropic  # deferred so tests can import this module without the SDK installed
 
+    parser = argparse.ArgumentParser(description="RiffTrax Twitch Notifier")
+    parser.add_argument("--chat", action="store_true", help="Print Twitch chat messages to the terminal")
+    args = parser.parse_args()
+
     api_key = load_api_key(API_KEY_FILE)
     if api_key:
         client = anthropic.Anthropic(api_key=api_key)
@@ -246,7 +252,7 @@ def run() -> None:
         print("[trivia] No API key found at ~/.rifftrax_anthropic_key — trivia disabled")
 
     try:
-        bot_loop()
+        bot_loop(show_chat=args.chat)
     except KeyboardInterrupt:
         print("\n[rifftrax-bot] Stopped.")
 
