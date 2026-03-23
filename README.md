@@ -75,13 +75,7 @@ echo "your-anthropic-api-key" > ~/.rifftrax_anthropic_key
 chmod 600 ~/.rifftrax_anthropic_key
 ```
 
-3. Start the trivia watcher alongside the bot:
-
-```bash
-python3 trivia_watcher.py
-```
-
-The watcher polls `~/.rifftrax_now_playing.txt` every 5 seconds. When the title changes it calls Claude and writes trivia to `~/.rifftrax_trivia.txt`, which the widget picks up automatically.
+The bot detects the key file on startup and runs the trivia watcher automatically. When the title changes it calls Claude and writes trivia to `~/.rifftrax_trivia.txt`, which the widget picks up automatically. If no key file is found, trivia is silently skipped.
 
 To test without waiting for a stream:
 
