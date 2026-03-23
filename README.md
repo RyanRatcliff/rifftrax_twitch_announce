@@ -56,21 +56,34 @@ The bot will print all chat messages to the terminal. When the trigger command i
 
 ---
 
-## Desktop Widgets (optional)
+## Desktop Widget (optional)
 
-Two Übersicht widgets are included. Both require [Übersicht](https://tracesof.net/uebersicht/) to be installed.
+An [Übersicht](https://tracesof.net/uebersicht/) widget is included that shows the current movie title, start time, and a scrolling trivia ticker in a single overlay card. Each section hides itself independently when its data isn't available, and the whole card hides when nothing is playing.
 
-### Now Playing widget
+### Setup
 
-Displays the current movie/short title on your desktop and disappears when nothing is playing.
+1. Copy the widget:
 
 ```bash
-cp -r widget/rifftrax.widget ~/Library/Application\ Support/Übersicht/widgets/
+cp -r widget/rifftrax-combined.widget ~/Library/Application\ Support/Übersicht/widgets/
 ```
 
-The widget reads `~/.rifftrax_now_playing.txt` every 5 seconds and updates automatically.
+2. For trivia, create an Anthropic API key file (one line, just the key):
 
-To test it without waiting for a stream:
+```bash
+echo "your-anthropic-api-key" > ~/.rifftrax_anthropic_key
+chmod 600 ~/.rifftrax_anthropic_key
+```
+
+3. Start the trivia watcher alongside the bot:
+
+```bash
+python3 trivia_watcher.py
+```
+
+The watcher polls `~/.rifftrax_now_playing.txt` every 5 seconds. When the title changes it calls Claude and writes trivia to `~/.rifftrax_trivia.txt`, which the widget picks up automatically.
+
+To test without waiting for a stream:
 
 ```bash
 echo "Plan 9 from Outer Space" > ~/.rifftrax_now_playing.txt
@@ -82,46 +95,7 @@ To clear it:
 rm ~/.rifftrax_now_playing.txt
 ```
 
-### Trivia widget
-
-Displays a scrolling ticker of Claude-generated RiffTrax-flavored trivia about whatever is currently playing. Requires an Anthropic API key.
-
-**Setup:**
-
-1. Create an API key file (one line, just the key):
-
-```bash
-echo "your-anthropic-api-key" > ~/.rifftrax_anthropic_key
-chmod 600 ~/.rifftrax_anthropic_key
-```
-
-2. Copy the widget:
-
-```bash
-cp -r widget/rifftrax-trivia.widget ~/Library/Application\ Support/Übersicht/widgets/
-```
-
-3. Start the trivia watcher alongside the bot:
-
-```bash
-python3 trivia_watcher.py
-```
-
-The watcher polls `~/.rifftrax_now_playing.txt` every 5 seconds. When the title changes it calls Claude, writes the trivia to `~/.rifftrax_trivia.txt`, and the widget picks it up automatically. The widget appears below the now-playing widget and hides itself when nothing is playing.
-
-### Combined widget *(alternative to the two above)*
-
-A single card that merges the Now Playing and Trivia widgets into one. Shows the movie title at the top, a divider, and the scrolling trivia ticker below — hiding each section independently when its data isn't available, and hiding the whole card when nothing is playing.
-
-Use this instead of the two separate widgets if you prefer a single unified overlay.
-
-```bash
-cp -r widget/rifftrax-combined.widget ~/Library/Application\ Support/Übersicht/widgets/
-```
-
-It reads both `~/.rifftrax_now_playing.txt` and `~/.rifftrax_trivia.txt`, so the same bot and trivia watcher setup applies.
-
-> **Note:** If your Übersicht widgets directory is not the default, substitute your actual path in the `cp` commands above.
+> **Note:** If your Übersicht widgets directory is not the default, substitute your actual path in the `cp` command above.
 
 ---
 
@@ -130,9 +104,10 @@ It reads both `~/.rifftrax_now_playing.txt` and `~/.rifftrax_trivia.txt`, so the
 Edit the config block at the top of `bot.py`:
 
 ```python
-CHANNEL = "rifftrax"       # Twitch channel to watch
-TRIGGER = "!cmd edit movie" # Chat command that signals a new movie
-NICK    = "justinfan70"    # Any justinfan* username works for anonymous access
+CHANNEL            = "rifftrax"                        # Twitch channel to watch
+TRIGGERS           = ("!cmd edit movie", "!cmd edit !movie")  # Commands that signal a new movie
+RIFFTRAX_URL_MARKER = "rifftrax.com/"                 # Substring present in StreamElements movie replies
+NICK               = "justinfan70"                    # Any justinfan* username works for anonymous access
 ```
 
 > **Note:** The `justinfan` prefix is required by Twitch for anonymous read-only IRC connections. You can change the number but must keep the `justinfan` prefix.
