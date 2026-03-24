@@ -62,6 +62,26 @@ When the trigger command is detected, a macOS notification will pop up and `~/.r
 
 ---
 
+## Running as a background service (macOS)
+
+A `Makefile` is included that manages the bot as a [launchd](https://support.apple.com/guide/terminal/script-management-with-launchd-apdc6c1077b-5d5d-4d35-9c19-60f2397b2369/mac) agent — macOS's native service manager. The service auto-restarts if it crashes and starts automatically on login after install.
+
+```bash
+make install    # write the launchd plist, start the service, and enable auto-start on login
+make stop       # stop the service
+make start      # start it again
+make restart    # stop then start
+make uninstall  # stop and remove the plist entirely
+make logs       # follow the bot log in real time (Ctrl+C to exit)
+make status     # show whether the service is running
+```
+
+Logs are written to `~/.rifftrax_bot.log` and errors to `~/.rifftrax_bot_error.log`.
+
+> **Note:** The service runs `bot.py` without `--chat`, so Twitch chat is not logged. To enable chat logging, open the `Makefile`, find the `ProgramArguments` section in `PLIST_XML`, and add `<string>--chat</string>` after the `bot.py` line, then run `make restart`.
+
+---
+
 ## Desktop Widget (optional)
 
 An [Übersicht](https://tracesof.net/uebersicht/) widget is included that shows the current movie title, start time, and a scrolling trivia ticker in a single overlay card. Each section hides itself independently when its data isn't available, and the whole card hides when nothing is playing.
