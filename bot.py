@@ -12,9 +12,12 @@ Usage:
 import argparse
 import os
 import socket
+import ssl
 import subprocess
+import tempfile
 import threading
 import time
+import traceback
 
 # ── IRC Config ────────────────────────────────────────────────────────────────
 CHANNEL             = "rifftrax"
@@ -33,7 +36,7 @@ FALLBACK_QUIP  = "Even our robots couldn't find anything nice to say about this 
 # ─────────────────────────────────────────────────────────────────────────────
 
 HOST = "irc.chat.twitch.tv"
-PORT = 6667
+PORT = 6697  # TLS
 
 
 # ── Shared helpers ────────────────────────────────────────────────────────────
@@ -48,16 +51,31 @@ def read_file(path: str) -> str:
 
 
 def write_file(path: str, content: str) -> None:
-    """Write content to a file, overwriting if it exists."""
-    with open(path, "w") as f:
-        f.write(content)
+    """Write content to a file atomically, overwriting if it exists."""
+    dir_ = os.path.dirname(path) or "."
+    fd, tmp = tempfile.mkstemp(dir=dir_)
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(content)
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 # ── IRC bot ───────────────────────────────────────────────────────────────────
 
 def notify(title: str, message: str) -> None:
-    script = f'display notification "{message}" with title "RiffTrax" subtitle "{title}"'
-    subprocess.run(["osascript", "-e", script], check=False)
+    # Pass title/message via env vars to avoid AppleScript string injection from chat input.
+    script = 'display notification (system attribute "MSG") with title "RiffTrax" subtitle (system attribute "TTL")'
+    subprocess.run(
+        ["osascript", "-e", script],
+        check=False,
+        env={**os.environ, "MSG": message, "TTL": title},
+    )
 
 
 def extract_title(text: str, trigger: str) -> str:
@@ -95,7 +113,9 @@ def parse_privmsg(line: str):
 
 
 def connect() -> tuple[socket.socket, object]:
-    sock = socket.socket()
+    context = ssl.create_default_context()
+    sock = context.wrap_socket(socket.socket(), server_hostname=HOST)
+    sock.settimeout(300)  # 5-minute timeout to detect hung connections
     sock.connect((HOST, PORT))
     sock.send(f"NICK {NICK}\r\n".encode())
     sock.send(f"JOIN #{CHANNEL}\r\n".encode())
@@ -112,6 +132,7 @@ def bot_loop(show_chat: bool = False) -> None:
     last_query_time = 0.0
 
     while True:
+        sock = None
         try:
             sock, reader = connect()
             for line in reader:
@@ -138,7 +159,7 @@ def bot_loop(show_chat: bool = False) -> None:
                     notify("Now Starting", title)
                     write_file(NOW_PLAYING_FILE, title)
 
-                elif message.strip().lower() in MOVIE_QUERY_COMMANDS:
+                elif message.lower() in MOVIE_QUERY_COMMANDS:
                     last_query_time = time.time()
 
                 elif username == STREAMELEMENTS_BOT and RIFFTRAX_URL_MARKER in message:
@@ -152,8 +173,15 @@ def bot_loop(show_chat: bool = False) -> None:
                             write_file(NOW_PLAYING_FILE, title)
 
         except Exception as e:
+            traceback.print_exc()
             print(f"[rifftrax-bot] Connection lost ({e}). Reconnecting in 5s...")
             time.sleep(5)
+        finally:
+            if sock:
+                try:
+                    sock.close()
+                except OSError:
+                    pass
 
 
 # ── Trivia watcher ────────────────────────────────────────────────────────────
@@ -175,12 +203,13 @@ def should_fetch_on_startup(title: str, existing_trivia: str) -> bool:
 
 
 def build_prompt(title: str) -> str:
+    # Title is wrapped in XML-style delimiters to reduce prompt injection surface.
     return (
         f'You are a writer for RiffTrax, the comedy riffing show. Write 2-3 short, punchy '
-        f'sentences of trivia about "{title}" in the RiffTrax voice — dry wit, affectionate '
-        f'mockery, genuine facts wrapped in a joke. If you don\'t recognize the title, write '
-        f'something generically funny about low-budget cinema. No bullet points, no lists, '
-        f'just flowing sentences.'
+        f'sentences of trivia about the film titled <title>{title}</title> in the RiffTrax '
+        f'voice — dry wit, affectionate mockery, genuine facts wrapped in a joke. If you '
+        f'don\'t recognize the title, write something generically funny about low-budget '
+        f'cinema. No bullet points, no lists, just flowing sentences.'
     )
 
 
@@ -194,6 +223,7 @@ def fetch_trivia(title: str, client) -> str:
         )
         return response.content[0].text.strip()
     except Exception as e:
+        traceback.print_exc()
         print(f"[trivia] API error: {e}")
         return FALLBACK_QUIP
 
@@ -231,6 +261,7 @@ def trivia_loop(client) -> None:
                 write_file(TRIVIA_FILE, fetch_trivia(current_title, client))
 
         except Exception as e:
+            traceback.print_exc()
             print(f"[trivia] Unexpected error: {e}")
 
 
