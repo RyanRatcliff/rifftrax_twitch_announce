@@ -21,7 +21,7 @@ No Twitch account, API keys, or OAuth tokens required.
 ## Requirements
 
 - macOS (notifications use `osascript`)
-- Python 3.8+
+- Python 3.10+
 - [Übersicht](https://tracesof.net/uebersicht/) *(optional, for desktop widgets)*
 - An [Anthropic API key](https://console.anthropic.com/) *(optional, for the trivia widget)*
 
@@ -30,13 +30,15 @@ No Twitch account, API keys, or OAuth tokens required.
 ## Installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/rifftrax_twitch_announce.git
+git clone https://github.com/RyanRatcliff/rifftrax_twitch_announce.git
 cd rifftrax_twitch_announce
 ```
 
-For the trivia widget only, install the `anthropic` SDK:
+For the trivia widget only, install the `anthropic` SDK (a virtual environment is recommended):
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -101,7 +103,9 @@ echo "your-anthropic-api-key" > ~/.rifftrax_anthropic_key
 chmod 600 ~/.rifftrax_anthropic_key
 ```
 
-The bot detects the key file on startup and runs the trivia watcher automatically. When the title changes it calls Claude and writes trivia to `~/.rifftrax_trivia.txt`, which the widget picks up automatically. If no key file is found, trivia is silently skipped.
+The bot detects the key file on startup and runs the trivia watcher automatically — no second process needed. When the title changes it calls Claude and writes trivia to `~/.rifftrax_trivia.txt`, which the widget picks up automatically. If no key file is found, trivia is silently skipped.
+
+> **Note:** Each title change makes one API call to Claude Haiku. Costs are small but real — check your [Anthropic usage dashboard](https://console.anthropic.com/) if you're watching for long sessions.
 
 To test without waiting for a stream:
 

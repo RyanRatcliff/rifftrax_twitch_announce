@@ -70,11 +70,19 @@ style: """
       display: block
 """
 
+escapeHtml = (str) ->
+  String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+
 render: (output) ->
   parts     = output.split('\n---SPLIT---\n')
-  title     = (parts[0] or '').trim()
-  trivia    = (parts[1] or '').trim()
-  starttime = (parts[2] or '').trim()
+  title     = escapeHtml((parts[0] or '').trim())
+  trivia    = escapeHtml((parts[1] or '').trim())
+  starttime = escapeHtml((parts[2] or '').trim())
   """
   <div class='now-playing-section'>
     <div class='label'>📽 Now Riffing</div>
