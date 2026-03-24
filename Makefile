@@ -66,3 +66,7 @@ logs:
 ## Show whether the service is running
 status:
 	@launchctl list | grep -q "$(LABEL)" && echo "Running" || echo "Stopped"
+
+## Run the test suite
+test:
+	@python3 -m pytest tests/ -v
